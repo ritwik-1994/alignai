@@ -1,6 +1,9 @@
 const fetch = require("node-fetch");
 
 exports.handler = async function (event) {
+  console.log("👉 Received request:", event.httpMethod, event.path);
+
+  // Only allow POST requests
   if (event.httpMethod !== "POST") {
     return {
       statusCode: 405,
@@ -8,26 +11,39 @@ exports.handler = async function (event) {
     };
   }
 
-  const { email, phone } = JSON.parse(event.body);
-
-  const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN;
-  const BASE_ID = process.env.AIRTABLE_BASE_ID;
-  const TABLE_NAME = process.env.AIRTABLE_TABLE_NAME;
-
-  const url = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(TABLE_NAME)}`;
-
-  const data = {
-    records: [
-      {
-        fields: {
-          Email: email,
-          Phone: phone,
-        },
-      },
-    ],
-  };
-
   try {
+    // Parse submitted data
+    const { email, phone } = JSON.parse(event.body);
+    console.log("📩 Data received:", { email, phone });
+
+    // Load environment variables
+    const AIRTABLE_TOKEN = process.env.AIRTABLE_TOKEN;
+    const BASE_ID = process.env.AIRTABLE_BASE_ID;
+    const TABLE_NAME = process.env.AIRTABLE_TABLE_NAME;
+
+    // Check for missing env variables
+    if (!AIRTABLE_TOKEN || !BASE_ID || !TABLE_NAME) {
+      console.error("❌ Missing Airtable environment variables");
+      return {
+        statusCode: 500,
+        body: "Server misconfigured: Missing Airtable environment variables",
+      };
+    }
+
+    const url = `https://api.airtable.com/v0/${BASE_ID}/${encodeURIComponent(TABLE_NAME)}`;
+
+    const data = {
+      records: [
+        {
+          fields: {
+            Email: email,
+            Phone: phone,
+          },
+        },
+      ],
+    };
+
+    // Submit to Airtable
     const response = await fetch(url, {
       method: "POST",
       headers: {
@@ -37,9 +53,18 @@ exports.handler = async function (event) {
       body: JSON.stringify(data),
     });
 
+    const result = await response.json();
+    console.log("✅ Airtable response:", result);
+
+    // If Airtable rejected the request
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText);
+      return {
+        statusCode: 500,
+        body: JSON.stringify({
+          error: "Airtable submission failed",
+          airtableError: result,
+        }),
+      };
     }
 
     return {
@@ -47,10 +72,13 @@ exports.handler = async function (event) {
       body: JSON.stringify({ success: true }),
     };
   } catch (err) {
-    console.error("Airtable Error:", err);
+    console.error("❌ Unexpected error:", err);
     return {
       statusCode: 500,
-      body: JSON.stringify({ success: false, error: err.message }),
+      body: JSON.stringify({
+        success: false,
+        error: err.message || "Internal server error",
+      }),
     };
   }
 };
