@@ -12,13 +12,7 @@ export default function App() {
   const [tip, setTip] = useState("");
   const [error, setError] = useState(null);
 
-  // ENV logging to ensure .env vars are loaded
-  useEffect(() => {
-    console.log("✅ App loaded");
-    console.log("REACT_APP_AIRTABLE_TOKEN:", process.env.REACT_APP_AIRTABLE_TOKEN);
-    console.log("REACT_APP_AIRTABLE_BASE_ID:", process.env.REACT_APP_AIRTABLE_BASE_ID);
-    console.log("REACT_APP_AIRTABLE_TABLE_NAME:", process.env.REACT_APP_AIRTABLE_TABLE_NAME);
-  }, []);
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
