@@ -13,7 +13,7 @@ exports.handler = async function (event) {
 
   try {
     // Parse submitted data
-    const { email, phone } = JSON.parse(event.body);
+    const { Email, Phone } = JSON.parse(event.body);
     console.log("📩 Data received:", { email, phone });
 
     // Load environment variables
